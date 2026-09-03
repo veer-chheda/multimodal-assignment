@@ -112,7 +112,7 @@ def _run(cmd: list[str], video_path: Path) -> subprocess.CompletedProcess:
 def _clip_duration_seconds(video_path: Path) -> float:
     out = _run(
         ["ffprobe", "-v", "error", "-show_entries", "format=duration",
-         "-of", "default=noprint_wrapping_selectors=1:nokey=1", str(video_path)],
+         "-of", "default=noprint_wrappers=1:nokey=1", str(video_path)],
         video_path,
     )
     return float(out.stdout.strip())
