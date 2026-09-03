@@ -1,13 +1,19 @@
 """MELD CSV loading + per-utterance frame/audio extraction via ffmpeg.
 
-Expected layout (matches the official MELD.Raw release / its usual Kaggle
-mirrors — see README "Data" section for where to get it):
+The official MELD.Raw release (declare-lab) lays each split out flat under
+one root:
 
     <meld_root>/
       train_sent_emo.csv, dev_sent_emo.csv, test_sent_emo.csv
       train_splits/dia{D}_utt{U}.mp4
       dev_splits_complete/dia{D}_utt{U}.mp4
       output_repeated_splits_test/dia{D}_utt{U}.mp4
+
+but Kaggle mirrors sometimes re-nest each split under a same-named
+subfolder (`<meld_root>/test/test_sent_emo.csv`, etc). `load_split` tries
+both so a one-off mount-path quirk doesn't need a code change — it uses
+whichever layout actually has the CSV for that split, and raises a clear
+error listing every path it tried if neither does.
 
 Each CSV row is one utterance: Utterance, Emotion, Sentiment, Dialogue_ID,
 Utterance_ID, Speaker, ... . Emotion values are lowercased to match
@@ -47,10 +53,18 @@ class Utterance:
     video_path: Path
 
 
+def _first_existing(candidates: list[Path]) -> Path:
+    for p in candidates:
+        if p.exists():
+            return p
+    tried = "\n  ".join(str(p) for p in candidates)
+    raise FileNotFoundError(f"none of these paths exist:\n  {tried}")
+
+
 def load_split(meld_root: str | Path, split: str, limit: int | None = None) -> list[Utterance]:
     root = Path(meld_root)
-    csv_path = root / split / SPLIT_CSVS[split]
-    video_dir = root / split / SPLIT_VIDEO_DIRS[split]
+    csv_path = _first_existing([root / SPLIT_CSVS[split], root / split / SPLIT_CSVS[split]])
+    video_dir = _first_existing([root / SPLIT_VIDEO_DIRS[split], root / split / SPLIT_VIDEO_DIRS[split]])
 
     rows: list[Utterance] = []
     with open(csv_path, newline="", encoding="utf-8") as f:
