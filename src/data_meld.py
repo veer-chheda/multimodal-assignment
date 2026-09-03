@@ -95,11 +95,25 @@ def dialogue(utterances: list[Utterance], dialogue_id: int) -> list[Utterance]:
     return sorted((u for u in utterances if u.dialogue_id == dialogue_id), key=lambda u: u.utt_index)
 
 
+def _run(cmd: list[str], video_path: Path) -> subprocess.CompletedProcess:
+    """subprocess.run wrapper that raises a RuntimeError carrying ffmpeg/ffprobe's actual
+    stderr (and the file size, to distinguish a truncated/empty file from a bad codec) —
+    a bare CalledProcessError's str() only shows the exit code, which isn't enough to
+    diagnose a bad clip from the caller."""
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    if result.returncode != 0:
+        size = video_path.stat().st_size if video_path.exists() else -1
+        raise RuntimeError(
+            f"`{' '.join(cmd[:1])}` failed on {video_path} ({size} bytes): {result.stderr.strip()[-500:]}"
+        )
+    return result
+
+
 def _clip_duration_seconds(video_path: Path) -> float:
-    out = subprocess.run(
+    out = _run(
         ["ffprobe", "-v", "error", "-show_entries", "format=duration",
          "-of", "default=noprint_wrapping_selectors=1:nokey=1", str(video_path)],
-        check=True, capture_output=True, text=True,
+        video_path,
     )
     return float(out.stdout.strip())
 
@@ -114,10 +128,10 @@ def extract_keyframes(video_path: str | Path, n_frames: int = 3):
 
     with tempfile.TemporaryDirectory() as tmp:
         out_pattern = str(Path(tmp) / "frame_%02d.png")
-        subprocess.run(
+        _run(
             ["ffmpeg", "-y", "-i", str(video_path), "-vf", f"fps={fps},scale=224:224",
              "-frames:v", str(n_frames), out_pattern],
-            check=True, capture_output=True,
+            video_path,
         )
         frames = sorted(Path(tmp).glob("frame_*.png"))
         return [Image.open(fp).convert("RGB").copy() for fp in frames]
@@ -130,12 +144,12 @@ def extract_audio(video_path: str | Path, sample_rate: int = 16_000) -> np.ndarr
     video_path = Path(video_path)
     with tempfile.TemporaryDirectory() as tmp:
         wav_path = Path(tmp) / "audio.wav"
-        subprocess.run(
+        _run(
             [
                 "ffmpeg", "-y", "-i", str(video_path),
                 "-ac", "1", "-ar", str(sample_rate), "-vn", str(wav_path),
             ],
-            check=True, capture_output=True,
+            video_path,
         )
         waveform, sr = sf.read(str(wav_path), dtype="float32")
         assert sr == sample_rate
