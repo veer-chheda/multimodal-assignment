@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+.venv/
+venv/
+.DS_Store
+.ipynb_checkpoints/
+data/
+*.mp4
+*.wav
+
+# trained fusion/gate checkpoints are small (<1MB) and intentionally tracked
+!artifacts/*.pt

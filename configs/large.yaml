@@ -1,0 +1,33 @@
+# Larger model configuration, pushed toward the 6B cap while keeping a
+# deliberate safety margin (see README "Model budget" trade-off note) —
+# exact runtime count still must clear src/param_budget.py's assertion.
+name: large
+
+encoders:
+  text:
+    checkpoint: sentence-transformers/all-MiniLM-L6-v2
+    approx_params: 22_700_000
+  vision:
+    checkpoint: trpakov/vit-face-expression
+    approx_params: 85_800_000
+  audio:
+    checkpoint: superb/wav2vec2-base-superb-er
+    approx_params: 94_600_000
+
+fusion:
+  hidden_dim: 256
+  embed_dims:
+    text: 384
+    vision: 768
+    audio: 768
+  num_classes: 7
+  gate_hidden_dim: 64
+
+responder:
+  checkpoint: Qwen/Qwen2.5-3B-Instruct
+  approx_params: 3_090_000_000
+  max_new_tokens: 60
+  temperature: 0.7
+
+approx_total_params: 3_293_100_000
+param_budget: 6_000_000_000

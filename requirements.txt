@@ -1,0 +1,12 @@
+torch>=2.2
+transformers>=4.44
+sentence-transformers>=3.0
+accelerate>=0.33
+soundfile>=0.12
+Pillow>=10.0
+PyYAML>=6.0
+numpy>=1.26
+
+# optional, only needed for src.stream_demo.run_live (local webcam+mic demo)
+opencv-python>=4.9
+sounddevice>=0.4

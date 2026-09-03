@@ -1,0 +1,35 @@
+# Conservative model configuration (~1.7B total params).
+# Fast to load/run, safe on a single T4 or even CPU for the local fallback demo.
+name: small
+
+encoders:
+  text:
+    checkpoint: sentence-transformers/all-MiniLM-L6-v2
+    approx_params: 22_700_000
+  vision:
+    checkpoint: trpakov/vit-face-expression
+    approx_params: 85_800_000
+  audio:
+    checkpoint: superb/wav2vec2-base-superb-er
+    approx_params: 94_600_000
+
+fusion:
+  hidden_dim: 256
+  embed_dims:
+    text: 384
+    vision: 768
+    audio: 768
+  num_classes: 7
+  # RL gate policy network (REINFORCE) — tiny, negligible params.
+  gate_hidden_dim: 64
+
+responder:
+  checkpoint: Qwen/Qwen2.5-1.5B-Instruct
+  approx_params: 1_540_000_000
+  max_new_tokens: 60
+  temperature: 0.7
+
+# Sum of approx_params above (encoders + responder; fusion/gate heads are
+# counted exactly at runtime by src/param_budget.py, not estimated here).
+approx_total_params: 1_743_100_000
+param_budget: 6_000_000_000
