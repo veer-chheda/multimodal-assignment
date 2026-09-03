@@ -80,10 +80,11 @@ storage precision) — both configs run in fp16/fp32 as loaded from the Hub.
 ## Setup
 
 **Primary path — Kaggle** (no local GPU required): open `notebooks/kaggle_train_and_demo.ipynb`,
-attach this repo and a MELD dataset as described in its first cells, set accelerator to GPU (T4 x1 or
-x2), and run top to bottom. It trains the fusion head + RL gate, reports static-vs-RL-gated
-accuracy/F1, reports a Text+Vision-only vs tri-modal ablation, runs the streaming demo over one real
-MELD conversation, and saves the (tiny, <1MB) trained checkpoints to `artifacts/`.
+attach this repo (as a Kaggle Dataset or Utility Script) and the
+[zaber666/meld-dataset](https://www.kaggle.com/datasets/zaber666/meld-dataset) Kaggle dataset, set
+accelerator to GPU (T4 x1 or x2), and run top to bottom. It trains the fusion head + RL gate, reports
+static-vs-RL-gated accuracy/F1, reports a Text+Vision-only vs tri-modal ablation, runs the streaming
+demo over one real MELD conversation, and saves the (tiny, <1MB) trained checkpoints to `artifacts/`.
 
 **Local fallback** (CPU, no MELD video needed — proves the repo runs outside Kaggle):
 ```bash
@@ -99,9 +100,12 @@ explicit warning when this is the case).
 ## Data
 
 [MELD](https://github.com/declare-lab/MELD) (declare-lab) — conversational text, per-utterance video
-(with embedded audio), and 7-way emotion + 3-way sentiment labels, from *Friends*. `src/data_meld.py`
-reads the official CSV layout and extracts keyframes + audio per utterance clip via `ffmpeg`. MELD is
-for research/non-commercial use; cite the MELD paper (Poria et al., ACL 2019) if reusing this pipeline.
+(with embedded audio), and 7-way emotion + 3-way sentiment labels, from *Friends*. This project uses the
+[zaber666/meld-dataset](https://www.kaggle.com/datasets/zaber666/meld-dataset) Kaggle mirror, whose
+layout nests each split's CSV and videos under a same-named subfolder (`train/train_sent_emo.csv`,
+`train/train_splits/*.mp4`, and similarly for `dev`/`test`). `src/data_meld.py` reads that layout and
+extracts keyframes + audio per utterance clip via `ffmpeg`. MELD is for research/non-commercial use;
+cite the MELD paper (Poria et al., ACL 2019) if reusing this pipeline.
 
 ## Evidence (fill in exact numbers from your notebook run)
 
