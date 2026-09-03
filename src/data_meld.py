@@ -49,8 +49,8 @@ class Utterance:
 
 def load_split(meld_root: str | Path, split: str, limit: int | None = None) -> list[Utterance]:
     root = Path(meld_root)
-    csv_path = root / SPLIT_CSVS[split]
-    video_dir = root / SPLIT_VIDEO_DIRS[split]
+    csv_path = root / split / SPLIT_CSVS[split]
+    video_dir = root / split / SPLIT_VIDEO_DIRS[split]
 
     rows: list[Utterance] = []
     with open(csv_path, newline="", encoding="utf-8") as f:
