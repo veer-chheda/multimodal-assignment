@@ -90,20 +90,44 @@ class RLGatePolicy(nn.Module):
         return torch.cat(out, dim=-1)
 
 
+def inverse_freq_class_weights(y: torch.Tensor, num_classes: int = 7) -> torch.Tensor:
+    """1/frequency per class, normalized to mean 1 — standard fix for MELD's class
+    imbalance (~47% `neutral`), which otherwise pulls cross-entropy toward always
+    predicting the majority class (the failure mode a low macro-F1 next to a much
+    higher accuracy usually indicates)."""
+    counts = torch.bincount(y, minlength=num_classes).float().clamp(min=1)
+    weights = 1.0 / counts
+    return weights * (num_classes / weights.sum())
+
+
 def train_fusion_head(
-    fusion: FusionHead, X: torch.Tensor, y: torch.Tensor, epochs: int = 30, lr: float = 1e-3
+    fusion: FusionHead,
+    X: torch.Tensor,
+    y: torch.Tensor,
+    epochs: int = 30,
+    lr: float = 1e-3,
+    class_weights: torch.Tensor | None = None,
+    val: tuple[torch.Tensor, torch.Tensor] | None = None,
+    log_every: int = 0,
 ) -> list[float]:
-    """Plain supervised training of the static/baseline fusion head. Returns loss history."""
+    """Plain supervised training of the static/baseline fusion head. Returns loss history.
+
+    `class_weights` (see `inverse_freq_class_weights`) counteracts MELD's class
+    imbalance. `val`, if given as (X_val, y_val), prints held-out accuracy/macro-F1
+    every `log_every` epochs so training progress is visible without a second run."""
     opt = torch.optim.Adam(fusion.parameters(), lr=lr)
     history = []
-    fusion.train()
-    for _ in range(epochs):
+    for epoch in range(epochs):
+        fusion.train()
         opt.zero_grad()
         logits = fusion(X)
-        loss = F.cross_entropy(logits, y)
+        loss = F.cross_entropy(logits, y, weight=class_weights)
         loss.backward()
         opt.step()
         history.append(loss.item())
+        if val is not None and log_every and (epoch + 1) % log_every == 0:
+            acc, f1 = evaluate(fusion, val[0], val[1])
+            print(f"  epoch {epoch + 1}/{epochs}  loss={loss.item():.3f}  val_acc={acc:.3f}  val_macro_f1={f1:.3f}")
     return history
 
 
